@@ -1,0 +1,24 @@
+{
+  "name": "@stockwellb/delegator.js",
+  "version": "0.1.0",
+  "description": "A tiny, framework-free DOM event delegation kernel with plugin support",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/delegator.js"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "test:watch": "node --test --watch",
+    "lint": "node -c src/delegator.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}

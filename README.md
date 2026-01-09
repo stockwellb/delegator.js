@@ -1,2 +1,222 @@
 # delegator.js
-A simple event libary
+
+A tiny, framework free DOM event delegation kernel with plugin support.
+
+**Zero dependencies** | **ES Modules**
+
+## Why?
+
+Mostly so I can make SSR apps with some vanilla JS interactivity without pulling in a large framework.
+
+- **Single delegated listener** - one event listener handles your entire app
+- **Data attributes as the API** - HTML is self-documenting
+- **Plugin pipeline** - extensible without bloating the core
+- **Ignore zones** - opt-out areas for third-party widgets
+- **Fully testable** - injection points for testing without browser APIs
+
+## Install
+
+```bash
+npm install @stockwellb/delegator.js
+```
+
+## Quick Start
+
+```js
+import { createDelegator, createHandlerPlugin } from '@stockwellb/delegator.js';
+
+const delegator = createDelegator({
+  ignore: '[data-ignore]', // skip these areas
+});
+
+delegator.use(createHandlerPlugin({
+  handlers: {
+    sayHello: () => alert('Hello!'),
+    Counter: {
+      increment: (e, el) => { /* ... */ },
+      decrement: (e, el) => { /* ... */ },
+    },
+  },
+}));
+
+delegator.start();
+```
+
+```html
+<button data-handler="sayHello">Greet</button>
+<button data-handler="Counter.increment">+1</button>
+
+<div data-ignore>
+  <!-- delegator won't intercept events here -->
+</div>
+```
+
+## Core API
+
+### `createDelegator(options)`
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `root` | `document` | EventTarget to attach listener |
+| `rootEl` | `documentElement` | Semantic root for context |
+| `eventType` | `'click'` | Event type to delegate |
+| `capture` | `false` | Use capture phase |
+| `passive` | `false` | Mark listener as passive |
+| `ignore` | `null` | Selector string or `(ctx) => boolean` |
+| `plugins` | `[]` | Initial plugin list |
+| `stopOnHandle` | `true` | Stop after first plugin handles |
+
+**Returns:** `{ start, stop, use, remove, plugins }`
+
+```js
+const delegator = createDelegator({ ignore: '.third-party' });
+
+delegator.use(myPlugin);       // Add plugin
+delegator.remove(myPlugin);    // Remove by reference
+delegator.remove('plugin-name'); // Remove by name
+delegator.plugins();           // List active plugins
+delegator.start();             // Attach listener
+delegator.stop();              // Detach listener
+```
+
+## Plugins
+
+Plugins have two methods:
+
+```js
+const myPlugin = {
+  name: 'my-plugin', // optional, useful for remove()
+
+  match(ctx) {
+    // Return matched element or null
+    return ctx.target?.closest('[data-my-action]');
+  },
+
+  handle(ctx, el) {
+    // Do something with the matched element
+    // Return false to pass to next plugin
+    // Return true/void to stop pipeline (if stopOnHandle)
+    // Can be async
+  },
+};
+```
+
+### Context Object
+
+```js
+{
+  event,              // Original DOM event
+  target,             // event.target as Element (or null)
+  rootEl,             // Root element from options
+  feedbackSuccess,    // (el, opts?) => void
+  feedbackError,      // (el, opts?) => void
+}
+```
+
+## Built-in: Handler Plugin
+
+Dispatch `data-handler` attributes to a registry. Supports dot notation.
+
+```js
+import { createHandlerPlugin } from '@stockwellb/delegator.js';
+
+delegator.use(createHandlerPlugin({
+  handlers: {
+    simple: (e, el) => { /* ... */ },
+    Namespaced: {
+      action: (e, el) => { /* ... */ },
+    },
+  },
+  selector: '[data-handler]',    // default
+  preventDefault: true,          // default
+  stopPropagation: true,         // default
+  ignore: null,                  // plugin-level ignore
+  onMissing: (ctx, el, name) => {},  // missing handler callback
+  onInvoke: (ctx, el, fn, name) => {},  // intercept invocation
+}));
+```
+
+```html
+<button data-handler="simple">Click</button>
+<button data-handler="Namespaced.action">Namespaced</button>
+```
+
+## Built-in: Copy Plugins
+
+Copy text or links to clipboard with visual feedback.
+
+```js
+import { copyTextPlugin, copyLinkPlugin } from '@stockwellb/delegator.js/src/plugins/copy.js';
+
+delegator.use(copyTextPlugin({
+  onSuccess: (ctx, el, text) => console.log('Copied:', text),
+  onError: (ctx, el, err) => console.error(err),
+}));
+
+delegator.use(copyLinkPlugin({
+  buildURL: (raw, ctx, el) => raw, // customize URL building
+}));
+```
+
+```html
+<!-- Copy text -->
+<button data-copy-text="Hello, world!">Copy</button>
+
+<!-- Copy link (hashes expand to full URL) -->
+<button data-copy-link="#section-1">Copy Link</button>
+<button data-copy-link="https://example.com">Copy URL</button>
+```
+
+### Visual Feedback
+
+Declarative feedback via data attributes:
+
+```html
+<button
+  data-copy-text="npm install delegator.js"
+  data-feedback="icon"
+  data-feedback-target="i"
+  data-feedback-swap="fa-copy:fa-check"
+  data-feedback-ms="1500">
+  <i class="fa-copy"></i> Copy
+</button>
+```
+
+| Attribute | Description |
+|-----------|-------------|
+| `data-feedback` | Mode (`icon` supported) |
+| `data-feedback-target` | Selector for icon element (default `i`) |
+| `data-feedback-swap` | Class swap `from:to` |
+| `data-feedback-ms` | Revert delay in ms (default `1500`) |
+
+## Testing
+
+All plugins accept injection points for testing:
+
+```js
+// Mock clipboard in tests
+const writeText = async (text) => { /* mock */ };
+
+copyTextPlugin({ writeText });
+copyLinkPlugin({ writeText, buildURL: (raw) => raw });
+```
+
+```bash
+npm test          # Run tests
+npm run test:watch  # Watch mode
+```
+
+## Philosophy
+
+- **Data attributes are the API** - look at HTML, understand behavior
+- **Keep the core tiny** - push app logic into plugins/handlers
+- **Prefer explicitness** - no magic, no hidden behavior
+- **Injection over globals** - testable without browser APIs
+
+## License
+
+MIT
+
+---
+
+Built for SSR-first apps where you want interactivity without the framework tax.

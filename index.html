@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>delegator.js Demo</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+	<style>
+		* {
+			box-sizing: border-box;
+		}
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+			max-width: 900px;
+			margin: 0 auto;
+			padding: 2rem;
+			background: #f5f5f5;
+			color: #333;
+		}
+		h1 {
+			color: #2563eb;
+			margin-bottom: 0.5rem;
+		}
+		h1 + p {
+			color: #666;
+			margin-top: 0;
+		}
+		h2 {
+			margin-top: 2rem;
+			padding-top: 1rem;
+			border-top: 1px solid #ddd;
+		}
+		section {
+			background: white;
+			padding: 1.5rem;
+			border-radius: 8px;
+			margin-bottom: 1.5rem;
+			box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+		}
+		section h3 {
+			margin-top: 0;
+			color: #1e40af;
+		}
+		button {
+			padding: 0.5rem 1rem;
+			font-size: 1rem;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			margin: 0.25rem;
+			transition: background 0.2s, transform 0.1s;
+		}
+		button:hover {
+			transform: translateY(-1px);
+		}
+		button:active {
+			transform: translateY(0);
+		}
+		.btn-primary {
+			background: #2563eb;
+			color: white;
+		}
+		.btn-primary:hover {
+			background: #1d4ed8;
+		}
+		.btn-secondary {
+			background: #6b7280;
+			color: white;
+		}
+		.btn-secondary:hover {
+			background: #4b5563;
+		}
+		.btn-success {
+			background: #16a34a;
+			color: white;
+		}
+		.btn-success:hover {
+			background: #15803d;
+		}
+		.btn-danger {
+			background: #dc2626;
+			color: white;
+		}
+		.btn-danger:hover {
+			background: #b91c1c;
+		}
+		.btn-outline {
+			background: white;
+			border: 2px solid #2563eb;
+			color: #2563eb;
+		}
+		.btn-outline:hover {
+			background: #eff6ff;
+		}
+		code {
+			background: #f1f5f9;
+			padding: 0.2rem 0.4rem;
+			border-radius: 3px;
+			font-size: 0.9em;
+		}
+		pre {
+			background: #1e293b;
+			color: #e2e8f0;
+			padding: 1rem;
+			border-radius: 6px;
+			overflow-x: auto;
+		}
+		pre code {
+			background: none;
+			padding: 0;
+		}
+		.log {
+			background: #1e293b;
+			color: #a5f3fc;
+			padding: 1rem;
+			border-radius: 6px;
+			font-family: monospace;
+			font-size: 0.9rem;
+			min-height: 100px;
+			max-height: 200px;
+			overflow-y: auto;
+		}
+		.log:empty::before {
+			content: "Events will appear here...";
+			color: #64748b;
+		}
+		.log-entry {
+			margin: 0.25rem 0;
+			padding: 0.25rem 0;
+			border-bottom: 1px solid #334155;
+		}
+		.log-entry:last-child {
+			border-bottom: none;
+		}
+		.ignored-zone {
+			background: #fef2f2;
+			border: 2px dashed #fca5a5;
+			padding: 1rem;
+			border-radius: 6px;
+			margin-top: 1rem;
+		}
+		.ignored-zone p {
+			margin: 0 0 0.5rem 0;
+			color: #991b1b;
+			font-weight: 500;
+		}
+		.copy-demo {
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+			margin: 0.5rem 0;
+		}
+		.copy-demo input {
+			flex: 1;
+			padding: 0.5rem;
+			border: 1px solid #d1d5db;
+			border-radius: 4px;
+			font-size: 1rem;
+		}
+		.copy-demo button {
+			min-width: 120px;
+		}
+		.counter {
+			font-size: 2rem;
+			font-weight: bold;
+			color: #2563eb;
+			margin: 1rem 0;
+		}
+		.badge {
+			display: inline-block;
+			padding: 0.25rem 0.5rem;
+			background: #dbeafe;
+			color: #1e40af;
+			border-radius: 9999px;
+			font-size: 0.8rem;
+			margin-left: 0.5rem;
+		}
+		.controls {
+			display: flex;
+			gap: 0.5rem;
+			flex-wrap: wrap;
+			margin: 1rem 0;
+		}
+		footer {
+			text-align: center;
+			color: #6b7280;
+			margin-top: 2rem;
+			padding-top: 1rem;
+			border-top: 1px solid #ddd;
+		}
+	</style>
+</head>
+<body>
+	<h1>delegator.js</h1>
+	<p>A tiny, framework-free DOM event delegation kernel with plugin support</p>
+
+	<!-- Handler Plugin Demo -->
+	<section>
+		<h3><i class="fa-solid fa-bolt"></i> Handler Plugin <code>data-handler</code></h3>
+		<p>Click buttons to dispatch to registered handlers. Supports dot notation for namespaced handlers.</p>
+
+		<div class="controls">
+			<button class="btn-primary" data-handler="Demo.increment">
+				<i class="fa-solid fa-plus"></i> Increment
+			</button>
+			<button class="btn-primary" data-handler="Demo.decrement">
+				<i class="fa-solid fa-minus"></i> Decrement
+			</button>
+			<button class="btn-secondary" data-handler="Demo.reset">
+				<i class="fa-solid fa-rotate-left"></i> Reset
+			</button>
+			<button class="btn-success" data-handler="sayHello">
+				<i class="fa-solid fa-hand-wave"></i> Say Hello
+			</button>
+		</div>
+
+		<div class="counter" id="counter">0</div>
+
+		<div class="ignored-zone" data-ignore>
+			<p><i class="fa-solid fa-ban"></i> Ignored Zone (delegator skips this area)</p>
+			<button class="btn-danger" data-handler="Demo.increment">
+				<i class="fa-solid fa-plus"></i> This won't work
+			</button>
+		</div>
+	</section>
+
+	<!-- Copy Plugins Demo -->
+	<section>
+		<h3><i class="fa-solid fa-clipboard"></i> Copy Plugins</h3>
+		<p>Copy text or links to clipboard with visual feedback.</p>
+
+		<h4>Copy Text <code>data-copy-text</code></h4>
+		<div class="copy-demo">
+			<input type="text" value="Hello, delegator.js!" readonly id="text-to-copy">
+			<button class="btn-outline"
+				data-copy-text="Hello, delegator.js!"
+				data-feedback="icon"
+				data-feedback-target="i"
+				data-feedback-swap="fa-copy:fa-check">
+				<i class="fa-regular fa-copy"></i> Copy
+			</button>
+		</div>
+
+		<div class="copy-demo">
+			<input type="text" value="npm install @stockwellb/delegator.js" readonly>
+			<button class="btn-outline"
+				data-copy-text="npm install @stockwellb/delegator.js"
+				data-feedback="icon"
+				data-feedback-swap="fa-copy:fa-check"
+				data-feedback-ms="2000">
+				<i class="fa-regular fa-copy"></i> Copy
+			</button>
+		</div>
+
+		<h4>Copy Link <code>data-copy-link</code></h4>
+		<div class="copy-demo">
+			<input type="text" value="#copy-plugins (expands to full URL)" readonly>
+			<button class="btn-outline"
+				data-copy-link="#copy-plugins"
+				data-feedback="icon"
+				data-feedback-swap="fa-link:fa-check">
+				<i class="fa-solid fa-link"></i> Copy Link
+			</button>
+		</div>
+
+		<div class="copy-demo">
+			<input type="text" value="https://github.com/stockwellb/delegator.js" readonly>
+			<button class="btn-outline"
+				data-copy-link="https://github.com/stockwellb/delegator.js"
+				data-feedback="icon"
+				data-feedback-swap="fa-link:fa-check">
+				<i class="fa-solid fa-link"></i> Copy Link
+			</button>
+		</div>
+	</section>
+
+	<!-- Custom Plugin Demo -->
+	<section>
+		<h3><i class="fa-solid fa-puzzle-piece"></i> Custom Plugin</h3>
+		<p>Create your own plugins with <code>match</code> and <code>handle</code> methods.</p>
+
+		<div class="controls">
+			<button class="btn-success" data-confirm="Are you sure you want to proceed?">
+				<i class="fa-solid fa-check"></i> Confirm Action
+			</button>
+			<button class="btn-danger" data-confirm="Delete this item permanently?">
+				<i class="fa-solid fa-trash"></i> Delete Item
+			</button>
+		</div>
+	</section>
+
+	<!-- Dynamic Plugin Management -->
+	<section>
+		<h3><i class="fa-solid fa-sliders"></i> Plugin Management</h3>
+		<p>Add and remove plugins at runtime.</p>
+
+		<div class="controls">
+			<button class="btn-primary" data-handler="Plugins.toggleCopy">
+				<i class="fa-solid fa-toggle-on"></i> Toggle Copy Plugin
+			</button>
+			<button class="btn-secondary" data-handler="Plugins.showActive">
+				<i class="fa-solid fa-list"></i> Show Active Plugins
+			</button>
+		</div>
+
+		<p>Copy plugin status: <span id="copy-status" class="badge">Active</span></p>
+	</section>
+
+	<!-- Event Log -->
+	<section>
+		<h3><i class="fa-solid fa-terminal"></i> Event Log</h3>
+		<p>All delegated events are logged here.</p>
+		<div class="log" id="log"></div>
+		<div class="controls" style="margin-top: 1rem;">
+			<button class="btn-secondary" data-handler="Log.clear">
+				<i class="fa-solid fa-eraser"></i> Clear Log
+			</button>
+		</div>
+	</section>
+
+	<!-- Code Example -->
+	<section>
+		<h3><i class="fa-solid fa-code"></i> Usage Example</h3>
+		<pre><code>import { createDelegator, createHandlerPlugin } from './src/delegator.js';
+import { copyTextPlugin, copyLinkPlugin } from './src/plugins/copy.js';
+
+// Create delegator with ignore zones
+const delegator = createDelegator({
+  root: document,
+  ignore: '[data-ignore]',
+});
+
+// Add handler plugin
+delegator.use(createHandlerPlugin({
+  handlers: {
+    sayHello: () => alert('Hello!'),
+    Demo: {
+      increment: () => count++,
+      decrement: () => count--,
+    }
+  }
+}));
+
+// Add copy plugins
+delegator.use(copyTextPlugin());
+delegator.use(copyLinkPlugin());
+
+// Start listening
+delegator.start();</code></pre>
+	</section>
+
+	<footer>
+		<p>delegator.js &mdash; MIT License</p>
+	</footer>
+
+	<script type="module" src="main.js"></script>
+</body>
+</html>
