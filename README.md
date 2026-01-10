@@ -189,6 +189,66 @@ Declarative feedback via data attributes:
 | `data-feedback-swap` | Class swap `from:to` |
 | `data-feedback-ms` | Revert delay in ms (default `1500`) |
 
+## Using with HTMX
+
+delegator.js works alongside HTMX for handling non-AJAX interactions. Configure ignore zones to prevent conflicts.
+
+### Basic Setup
+
+```js
+const delegator = createDelegator({
+  // Ignore elements that HTMX handles
+  ignore: '[hx-get],[hx-post],[hx-put],[hx-delete],[hx-patch],[hx-trigger]',
+});
+
+delegator.use(createHandlerPlugin({
+  handlers: { /* your handlers */ },
+  stopPropagation: false, // Let events bubble to HTMX
+}));
+
+delegator.start();
+```
+
+### Why This Matters
+
+| Issue | Solution |
+|-------|----------|
+| Both libraries handle same click | Use `ignore` to exclude `hx-*` elements |
+| `stopPropagation` blocks HTMX | Set `stopPropagation: false` on handler plugin |
+| Element has both `data-handler` and `hx-*` | Add to ignore selector or use plugin-level ignore |
+
+### Plugin-Level Ignore
+
+For finer control, configure ignore at the plugin level:
+
+```js
+delegator.use(createHandlerPlugin({
+  handlers: myHandlers,
+  ignore: '[hx-get],[hx-post]', // Only this plugin ignores HTMX
+  stopPropagation: false,
+}));
+
+delegator.use(copyTextPlugin({
+  // Copy plugin still works on HTMX elements if needed
+}));
+```
+
+### Predicate Ignore
+
+For complex scenarios, use a predicate function:
+
+```js
+const delegator = createDelegator({
+  ignore: (ctx) => {
+    if (!ctx.target) return false;
+    // Ignore any element with an hx-* attribute
+    return Array.from(ctx.target.attributes).some(
+      attr => attr.name.startsWith('hx-')
+    );
+  },
+});
+```
+
 ## Testing
 
 All plugins accept injection points for testing:
