@@ -429,9 +429,26 @@ describe("copyLinkPlugin", () => {
 // ---------------------------
 
 describe("defaultWriteText", () => {
+	let originalNavigator;
+
+	beforeEach(() => {
+		originalNavigator = globalThis.navigator;
+	});
+
+	afterEach(() => {
+		Object.defineProperty(globalThis, "navigator", {
+			value: originalNavigator,
+			writable: true,
+			configurable: true,
+		});
+	});
+
 	test("throws if clipboard API not available", async () => {
-		// jsdom doesn't have clipboard API by default
-		globalThis.navigator = {};
+		Object.defineProperty(globalThis, "navigator", {
+			value: {},
+			writable: true,
+			configurable: true,
+		});
 
 		await assert.rejects(
 			() => defaultWriteText("test", {}, {}),
@@ -441,11 +458,15 @@ describe("defaultWriteText", () => {
 
 	test("calls clipboard.writeText when available", async () => {
 		const written = [];
-		globalThis.navigator = {
-			clipboard: {
-				writeText: async (text) => { written.push(text); },
+		Object.defineProperty(globalThis, "navigator", {
+			value: {
+				clipboard: {
+					writeText: async (text) => { written.push(text); },
+				},
 			},
-		};
+			writable: true,
+			configurable: true,
+		});
 
 		await defaultWriteText("hello", {}, {});
 		assert.deepEqual(written, ["hello"]);
