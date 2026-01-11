@@ -195,7 +195,7 @@
 	<p>A tiny, framework-free DOM event delegation kernel with plugin support</p>
 
 	<!-- Handler Plugin Demo -->
-	<section>
+	<section id="handler-demo">
 		<h3><i class="fa-solid fa-bolt"></i> Handler Plugin <code>data-handler</code></h3>
 		<p>Click buttons to dispatch to registered handlers. Supports dot notation for namespaced handlers.</p>
 
@@ -274,10 +274,10 @@
 		</div>
 	</section>
 
-	<!-- Custom Plugin Demo -->
+	<!-- Confirm Plugin Demo -->
 	<section>
-		<h3><i class="fa-solid fa-puzzle-piece"></i> Custom Plugin</h3>
-		<p>Create your own plugins with <code>match</code> and <code>handle</code> methods.</p>
+		<h3><i class="fa-solid fa-circle-question"></i> Confirm Plugin <code>data-confirm</code></h3>
+		<p>Show confirmation dialogs before proceeding with an action.</p>
 
 		<div class="controls">
 			<button class="btn-success" data-confirm="Are you sure you want to proceed?">
@@ -286,6 +286,204 @@
 			<button class="btn-danger" data-confirm="Delete this item permanently?">
 				<i class="fa-solid fa-trash"></i> Delete Item
 			</button>
+		</div>
+	</section>
+
+	<!-- Toggle Class Plugin Demo -->
+	<section>
+		<h3><i class="fa-solid fa-toggle-on"></i> Toggle Class Plugin <code>data-toggle-class</code></h3>
+		<p>Toggle CSS classes on elements. Great for tabs, menus, and accordions.</p>
+
+		<div class="controls">
+			<button class="btn-primary" data-toggle-class="active">
+				<i class="fa-solid fa-star"></i> Toggle Self
+			</button>
+			<button class="btn-secondary" data-toggle-class="hidden" data-toggle-target="#toggle-panel">
+				<i class="fa-solid fa-eye"></i> Toggle Panel
+			</button>
+		</div>
+
+		<div id="toggle-panel" class="toggle-demo-panel">
+			This panel can be shown/hidden with the toggle button above.
+		</div>
+
+		<style>
+			.toggle-demo-panel {
+				margin-top: 1rem;
+				padding: 1rem;
+				background: #e0f2fe;
+				border-radius: 6px;
+				border: 1px solid #7dd3fc;
+			}
+			.toggle-demo-panel.hidden {
+				display: none;
+			}
+			button.active {
+				box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.4);
+			}
+		</style>
+	</section>
+
+	<!-- Dismiss Plugin Demo -->
+	<section>
+		<h3><i class="fa-solid fa-xmark"></i> Dismiss Plugin <code>data-dismiss</code></h3>
+		<p>Remove or hide elements. Perfect for alerts, toasts, and notifications.</p>
+
+		<div class="alert-demo" id="alert-demo-1">
+			<i class="fa-solid fa-circle-info"></i>
+			<span>This is an info alert with a dismiss button.</span>
+			<button class="btn-dismiss" data-dismiss="#alert-demo-1">
+				<i class="fa-solid fa-xmark"></i>
+			</button>
+		</div>
+
+		<div class="alert-demo alert-warning" id="alert-demo-2">
+			<i class="fa-solid fa-triangle-exclamation"></i>
+			<span>Warning! This alert will be removed from the DOM.</span>
+			<button class="btn-dismiss" data-dismiss="#alert-demo-2">
+				<i class="fa-solid fa-xmark"></i>
+			</button>
+		</div>
+
+		<div class="alert-demo alert-success">
+			<i class="fa-solid fa-circle-check"></i>
+			<span>No selector needed - dismisses closest .alert parent automatically.</span>
+			<button class="btn-dismiss" data-dismiss>
+				<i class="fa-solid fa-xmark"></i>
+			</button>
+		</div>
+
+		<div class="alert-demo" id="alert-hide-demo">
+			<i class="fa-solid fa-eye-slash"></i>
+			<span>This one uses <code>data-dismiss-mode="hide"</code> - adds hidden class instead of removing.</span>
+			<button class="btn-dismiss" data-dismiss="#alert-hide-demo" data-dismiss-mode="hide">
+				<i class="fa-solid fa-xmark"></i>
+			</button>
+		</div>
+
+		<button class="btn-secondary" data-handler="Demo.resetAlerts" style="margin-top: 1rem;">
+			<i class="fa-solid fa-rotate-left"></i> Reset Alerts
+		</button>
+
+		<style>
+			.alert-demo {
+				display: flex;
+				align-items: center;
+				gap: 0.75rem;
+				padding: 1rem;
+				background: #dbeafe;
+				border: 1px solid #93c5fd;
+				border-radius: 6px;
+				margin-bottom: 0.5rem;
+			}
+			.alert-demo.alert-warning {
+				background: #fef3c7;
+				border-color: #fcd34d;
+			}
+			.alert-demo.alert-success {
+				background: #dcfce7;
+				border-color: #86efac;
+			}
+			.alert-demo.hidden {
+				display: none;
+			}
+			.alert-demo span {
+				flex: 1;
+			}
+			.btn-dismiss {
+				background: transparent;
+				border: none;
+				padding: 0.25rem 0.5rem;
+				cursor: pointer;
+				opacity: 0.6;
+				transition: opacity 0.2s;
+			}
+			.btn-dismiss:hover {
+				opacity: 1;
+			}
+		</style>
+	</section>
+
+	<!-- Scroll-to Plugin Demo -->
+	<section id="scroll-demo-section">
+		<h3><i class="fa-solid fa-arrow-down"></i> Scroll-to Plugin <code>data-scroll-to</code></h3>
+		<p>Smooth scroll to any element. Supports behavior options and header offsets.</p>
+
+		<div class="controls">
+			<button class="btn-primary" data-scroll-to="#event-log-section">
+				<i class="fa-solid fa-arrow-down"></i> Scroll to Event Log
+			</button>
+			<button class="btn-secondary" data-scroll-to="#code-example" data-scroll-behavior="instant">
+				<i class="fa-solid fa-bolt"></i> Jump to Code (instant)
+			</button>
+			<button class="btn-outline" data-scroll-to="#handler-demo" data-scroll-block="center">
+				<i class="fa-solid fa-arrows-to-dot"></i> Center on Handler Demo
+			</button>
+		</div>
+
+		<p style="margin-top: 1rem;"><small>The plugin uses a 20px offset configured at the plugin level for visual breathing room.</small></p>
+	</section>
+
+	<!-- Disable Plugin Demo -->
+	<section>
+		<h3><i class="fa-solid fa-ban"></i> Disable Plugin <code>data-disable</code></h3>
+		<p>Prevent double-clicks and double-submits. Elements are disabled during async operations.</p>
+
+		<div class="controls">
+			<button class="btn-primary" data-disable="2000">
+				<i class="fa-solid fa-paper-plane"></i> Submit (re-enables in 2s)
+			</button>
+			<button class="btn-secondary" data-disable="3000" data-disable-class="btn-muted" data-loading-class="btn-spinner">
+				<i class="fa-solid fa-spinner"></i> Process (custom classes)
+			</button>
+			<button class="btn-success" data-disable>
+				<i class="fa-solid fa-lock"></i> Stay Disabled (manual)
+			</button>
+		</div>
+
+		<p style="margin-top: 1rem;"><small>The third button requires manual re-enabling via <code>el._delegatorEnable()</code> or <code>plugin.enable(el)</code>.</small></p>
+
+		<style>
+			button.is-disabled,
+			button.btn-muted {
+				opacity: 0.6;
+				cursor: not-allowed;
+			}
+			button.is-loading,
+			button.btn-spinner {
+				position: relative;
+			}
+			button.btn-spinner i {
+				animation: spin 1s linear infinite;
+			}
+			@keyframes spin {
+				from { transform: rotate(0deg); }
+				to { transform: rotate(360deg); }
+			}
+		</style>
+	</section>
+
+	<!-- Focus Plugin Demo -->
+	<section>
+		<h3><i class="fa-solid fa-bullseye"></i> Focus Plugin <code>data-focus</code></h3>
+		<p>Move focus to target elements. Great for skip links and form validation.</p>
+
+		<div class="controls">
+			<button class="btn-primary" data-focus="#focus-target-input">
+				<i class="fa-solid fa-keyboard"></i> Focus Input Below
+			</button>
+			<button class="btn-secondary" data-focus="#focus-target-section" data-focus-scroll="false">
+				<i class="fa-solid fa-bullseye"></i> Focus Section (no scroll)
+			</button>
+		</div>
+
+		<div style="margin-top: 1rem;">
+			<label for="focus-target-input">Target Input:</label>
+			<input id="focus-target-input" type="text" placeholder="Focus will move here..." style="padding: 0.5rem; width: 100%; max-width: 300px; margin-top: 0.25rem;">
+		</div>
+
+		<div id="focus-target-section" style="margin-top: 1rem; padding: 1rem; background: #fef3c7; border-radius: 6px; border: 1px solid #fcd34d;">
+			This section will receive focus (tabindex added automatically for non-focusable elements).
 		</div>
 	</section>
 
@@ -321,7 +519,7 @@
 	</section>
 
 	<!-- Event Log -->
-	<section>
+	<section id="event-log-section">
 		<h3><i class="fa-solid fa-terminal"></i> Event Log</h3>
 		<p>All delegated events are logged here.</p>
 		<div class="log" id="log"></div>
@@ -333,7 +531,7 @@
 	</section>
 
 	<!-- Code Example -->
-	<section>
+	<section id="code-example">
 		<h3><i class="fa-solid fa-code"></i> Usage Example</h3>
 		<pre><code>import { createDelegator, createHandlerPlugin } from './src/delegator.js';
 import { copyTextPlugin, copyLinkPlugin } from './src/plugins/copy.js';

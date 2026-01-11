@@ -2,6 +2,7 @@
 
 import { createDelegator, createHandlerPlugin } from './src/delegator.js';
 import { copyTextPlugin, copyLinkPlugin } from './src/plugins/copy.js';
+import { toggleClassPlugin, dismissPlugin, scrollToPlugin, disablePlugin, focusPlugin, confirmPlugin } from './src/plugins/ui.js';
 
 // ---------------------------
 // Feedback helper (replaces removed library feature)
@@ -113,6 +114,62 @@ const handlers = {
 			updateCounter();
 			log('Counter reset to 0', 'info');
 		},
+		resetAlerts: (_e, _el) => {
+			// Restore dismissed alerts by re-inserting the HTML
+			const section = document.querySelector('section:has(.alert-demo)') ||
+			                document.querySelector('h3 .fa-xmark')?.closest('section');
+			if (section) {
+				const container = section.querySelector('h3').nextElementSibling.nextElementSibling ?
+				                  section : section;
+				// Find the button that triggers reset
+				const resetBtn = section.querySelector('[data-handler="Demo.resetAlerts"]');
+
+				// Create alert HTML
+				const alertsHTML = `
+					<div class="alert-demo" id="alert-demo-1">
+						<i class="fa-solid fa-circle-info"></i>
+						<span>This is an info alert with a dismiss button.</span>
+						<button class="btn-dismiss" data-dismiss="#alert-demo-1">
+							<i class="fa-solid fa-xmark"></i>
+						</button>
+					</div>
+
+					<div class="alert-demo alert-warning" id="alert-demo-2">
+						<i class="fa-solid fa-triangle-exclamation"></i>
+						<span>Warning! This alert will be removed from the DOM.</span>
+						<button class="btn-dismiss" data-dismiss="#alert-demo-2">
+							<i class="fa-solid fa-xmark"></i>
+						</button>
+					</div>
+
+					<div class="alert-demo alert-success">
+						<i class="fa-solid fa-circle-check"></i>
+						<span>No selector needed - dismisses closest .alert parent automatically.</span>
+						<button class="btn-dismiss" data-dismiss>
+							<i class="fa-solid fa-xmark"></i>
+						</button>
+					</div>
+
+					<div class="alert-demo" id="alert-hide-demo">
+						<i class="fa-solid fa-eye-slash"></i>
+						<span>This one uses <code>data-dismiss-mode="hide"</code> - adds hidden class instead of removing.</span>
+						<button class="btn-dismiss" data-dismiss="#alert-hide-demo" data-dismiss-mode="hide">
+							<i class="fa-solid fa-xmark"></i>
+						</button>
+					</div>
+				`;
+
+				// Remove existing alerts
+				section.querySelectorAll('.alert-demo').forEach(el => el.remove());
+
+				// Insert new alerts before the reset button
+				if (resetBtn) {
+					resetBtn.insertAdjacentHTML('beforebegin', alertsHTML);
+				}
+
+				log('Alerts reset', 'info');
+			}
+		},
 	},
 
 	// Plugin management
@@ -152,34 +209,6 @@ const handlers = {
 		triggerError: (_e, _el) => {
 			throw new Error('Intentional error for demo');
 		},
-	},
-};
-
-// ---------------------------
-// Custom confirm plugin
-// ---------------------------
-
-const confirmPlugin = {
-	name: 'confirm-dialog',
-	match(ctx) {
-		if (!ctx.target) return null;
-		return ctx.target.closest('[data-confirm]');
-	},
-	handle(ctx, el) {
-		ctx.event.preventDefault();
-		ctx.event.stopPropagation();
-
-		const message = el.getAttribute('data-confirm');
-		log(`Confirm dialog triggered: "${message}"`, 'info');
-
-		if (confirm(message)) {
-			log('User confirmed action', 'success');
-			// In a real app, you might dispatch a custom event or call a callback
-		} else {
-			log('User cancelled action', 'warn');
-		}
-
-		return true;
 	},
 };
 
@@ -233,8 +262,54 @@ copyLinkPluginInstance = copyLinkPlugin({
 });
 delegator.use(copyLinkPluginInstance);
 
-// 4. Custom confirm plugin
-delegator.use(confirmPlugin);
+// 4. Confirm plugin
+delegator.use(confirmPlugin({
+	onConfirm: (_ctx, el, message) => {
+		log(`User confirmed: "${message}"`, 'success');
+	},
+	onCancel: (_ctx, el, message) => {
+		log(`User cancelled: "${message}"`, 'warn');
+	},
+}));
+
+// 5. Toggle class plugin
+delegator.use(toggleClassPlugin({
+	onToggle: (_ctx, el, target, classes) => {
+		log(`Toggled [${classes.join(', ')}] on ${target.id || target.tagName}`, 'info');
+	},
+}));
+
+// 6. Dismiss plugin
+delegator.use(dismissPlugin({
+	onDismiss: (_ctx, el, target) => {
+		log(`Dismissing ${target.id || target.className || target.tagName}`, 'info');
+	},
+}));
+
+// 7. Scroll-to plugin
+delegator.use(scrollToPlugin({
+	offset: 20, // Small offset for visual breathing room
+	onScroll: (_ctx, el, target) => {
+		log(`Scrolling to ${target.id || target.tagName}`, 'info');
+	},
+}));
+
+// 8. Disable plugin (for preventing double-submits)
+delegator.use(disablePlugin({
+	onDisable: (_ctx, el) => {
+		log(`Disabled: ${el.id || el.textContent.trim()}`, 'info');
+	},
+	onEnable: (_ctx, el) => {
+		log(`Re-enabled: ${el.id || el.textContent.trim()}`, 'success');
+	},
+}));
+
+// 9. Focus plugin (for accessibility and skip links)
+delegator.use(focusPlugin({
+	onFocus: (_ctx, el, target) => {
+		log(`Focused: ${target.id || target.tagName}`, 'info');
+	},
+}));
 
 // ---------------------------
 // Start delegator
