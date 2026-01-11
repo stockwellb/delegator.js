@@ -4,7 +4,12 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 
 import { createDelegator } from "../src/delegator.js";
-import { toggleClassPlugin, dismissPlugin, scrollToPlugin, disablePlugin, focusPlugin, confirmPlugin } from "../src/plugins/ui.js";
+import { toggleClassPlugin } from "../src/plugins/toggle.js";
+import { dismissPlugin } from "../src/plugins/dismiss.js";
+import { scrollToPlugin } from "../src/plugins/scroll-to.js";
+import { disablePlugin } from "../src/plugins/disable.js";
+import { focusPlugin } from "../src/plugins/focus.js";
+import { confirmPlugin } from "../src/plugins/confirm.js";
 
 // ---------------------------
 // Test helpers

@@ -4,10 +4,13 @@
   "description": "A tiny, framework-free DOM event delegation kernel with plugin support",
   "type": "module",
   "license": "MIT",
+  "main": "./index.js",
   "exports": {
-    ".": "./src/delegator.js"
+    ".": "./index.js",
+    "./plugins/*": "./src/plugins/*.js"
   },
   "files": [
+    "index.js",
     "src"
   ],
   "scripts": {

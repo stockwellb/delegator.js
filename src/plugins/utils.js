@@ -1,16 +1,5 @@
-// src/plugins/copy.js
-// Copy plugins for delegator.js
-//
-// Provides:
-// - copyTextPlugin: [data-copy-text] copies plain text
-// - copyLinkPlugin: [data-copy-link] copies a URL (hash → full URL; absolute URL left as-is)
-//
-// Both plugins:
-// - use event delegation via closest()
-// - preventDefault + stopPropagation by default (configurable)
-// - optionally stopImmediatePropagation (configurable)
-// - allow injection of writeText() for testing (jsdom) or custom clipboard handling
-// - support ignore zones (selector string or predicate)
+// src/plugins/utils.js
+// Shared utilities for delegator.js plugins
 
 import { normalizeIgnore } from "../delegator.js";
 
@@ -20,84 +9,8 @@ import { normalizeIgnore } from "../delegator.js";
  * @typedef {import("../delegator.js").IgnorePredicate} IgnorePredicate
  */
 
-/**
- * @typedef {Object} CopyPluginBaseOptions
- * @property {string=} selector - CSS selector for matching elements
- * @property {(text: string, ctx: DelegatorContext, el: Element) => Promise<void>=} writeText - override clipboard write
- * @property {boolean=} preventDefault - call preventDefault (default true)
- * @property {boolean=} stopPropagation - call stopPropagation (default true)
- * @property {boolean=} stopImmediate - call stopImmediatePropagation (default false)
- * @property {string|IgnorePredicate|null=} ignore - ignore zones (selector or predicate)
- */
-
-/**
- * @typedef {CopyPluginBaseOptions & {
- *   onSuccess?: (ctx: DelegatorContext, el: Element, text: string) => void,
- *   onError?: (ctx: DelegatorContext, el: Element, err: any) => void
- * }} CopyTextPluginOptions
- */
-
-/**
- * @typedef {CopyPluginBaseOptions & {
- *   onSuccess?: (ctx: DelegatorContext, el: Element, url: string) => void,
- *   onError?: (ctx: DelegatorContext, el: Element, err: any) => void,
- *   buildURL?: (raw: string, ctx: DelegatorContext, el: Element) => string
- * }} CopyLinkPluginOptions
- */
-
-/**
- * Create a copy-text plugin that copies the value of [data-copy-text] to clipboard.
- *
- * @param {CopyTextPluginOptions=} opts
- * @returns {DelegatorPlugin}
- */
-export function copyTextPlugin(opts = {}) {
-	const { selector = "[data-copy-text]", onSuccess, onError, ...baseOpts } = opts;
-
-	return createCopyPlugin({
-		name: "copy-text",
-		selector,
-		attr: "data-copy-text",
-		transform: (text, _ctx, _el) => {
-			if (!text) {
-				console.warn("[copyTextPlugin] Empty data-copy-text attribute");
-			}
-			return text;
-		},
-		onSuccess,
-		onError,
-		...baseOpts,
-	});
-}
-
-/**
- * Create a copy-link plugin that copies a URL from [data-copy-link] to clipboard.
- * Hash values (e.g. "#section") are expanded to full URLs.
- *
- * @param {CopyLinkPluginOptions=} opts
- * @returns {DelegatorPlugin}
- */
-export function copyLinkPlugin(opts = {}) {
-	const { selector = "[data-copy-link]", buildURL, onSuccess, onError, ...baseOpts } = opts;
-
-	return createCopyPlugin({
-		name: "copy-link",
-		selector,
-		attr: "data-copy-link",
-		transform: (raw, ctx, el) => {
-			if (!raw) {
-				console.warn("[copyLinkPlugin] Empty data-copy-link attribute");
-			}
-			return typeof buildURL === "function" ? buildURL(raw, ctx, el) : defaultBuildURL(raw);
-		},
-		onSuccess,
-		onError,
-		...baseOpts,
-	});
-}
-
 // ---------------------------
-// Shared factory
+// Copy plugin factory
 // ---------------------------
 
 /**
@@ -115,7 +28,7 @@ export function copyLinkPlugin(opts = {}) {
  * @param {string|IgnorePredicate|null=} config.ignore
  * @returns {DelegatorPlugin}
  */
-function createCopyPlugin(config) {
+export function createCopyPlugin(config) {
 	const {
 		name,
 		selector,
@@ -169,7 +82,7 @@ function createCopyPlugin(config) {
 }
 
 // ---------------------------
-// Helpers (exported for wrapping/testing)
+// Clipboard helpers
 // ---------------------------
 
 /**

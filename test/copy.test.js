@@ -4,12 +4,9 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 
 import { createDelegator } from "../src/delegator.js";
-import {
-	copyTextPlugin,
-	copyLinkPlugin,
-	defaultWriteText,
-	defaultBuildURL,
-} from "../src/plugins/copy.js";
+import { copyTextPlugin } from "../src/plugins/copy-text.js";
+import { copyLinkPlugin } from "../src/plugins/copy-link.js";
+import { defaultWriteText, defaultBuildURL } from "../src/plugins/utils.js";
 
 // ---------------------------
 // Test helpers

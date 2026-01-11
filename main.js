@@ -2,8 +2,14 @@
 
 import { createDelegator } from './src/delegator.js';
 import { createHandlerPlugin } from './src/plugins/handler.js';
-import { copyTextPlugin, copyLinkPlugin } from './src/plugins/copy.js';
-import { toggleClassPlugin, dismissPlugin, scrollToPlugin, disablePlugin, focusPlugin, confirmPlugin } from './src/plugins/ui.js';
+import { copyTextPlugin } from './src/plugins/copy-text.js';
+import { copyLinkPlugin } from './src/plugins/copy-link.js';
+import { toggleClassPlugin } from './src/plugins/toggle.js';
+import { dismissPlugin } from './src/plugins/dismiss.js';
+import { scrollToPlugin } from './src/plugins/scroll-to.js';
+import { disablePlugin } from './src/plugins/disable.js';
+import { focusPlugin } from './src/plugins/focus.js';
+import { confirmPlugin } from './src/plugins/confirm.js';
 
 // ---------------------------
 // Feedback helper (replaces removed library feature)
