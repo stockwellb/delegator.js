@@ -227,7 +227,7 @@
 	<!-- Copy Plugins Demo -->
 	<section>
 		<h3><i class="fa-solid fa-clipboard"></i> Copy Plugins</h3>
-		<p>Copy text or links to clipboard with visual feedback.</p>
+		<p>Copy text or links to clipboard.</p>
 
 		<h4>Copy Text <code>data-copy-text</code></h4>
 		<div class="copy-demo">
@@ -304,6 +304,20 @@
 		</div>
 
 		<p>Copy plugin status: <span id="copy-status" class="badge">Active</span></p>
+	</section>
+
+	<!-- Error Handling Demo -->
+	<section>
+		<h3><i class="fa-solid fa-bug"></i> Error Handling</h3>
+		<p>The <code>onError</code> callback catches plugin errors for custom reporting.</p>
+
+		<div class="controls">
+			<button class="btn-danger" data-handler="Error.triggerError">
+				<i class="fa-solid fa-bomb"></i> Trigger Error
+			</button>
+		</div>
+
+		<p>Click the button to see the error logged below via <code>onError</code>.</p>
 	</section>
 
 	<!-- Event Log -->

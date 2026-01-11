@@ -65,6 +65,8 @@ delegator.start();
 | `ignore` | `null` | Selector string or `(ctx) => boolean` |
 | `plugins` | `[]` | Initial plugin list |
 | `stopOnHandle` | `true` | Stop after first plugin handles |
+| `onHandle` | `null` | `(plugin, ctx, el) => void` - called when a plugin handles |
+| `onError` | `null` | `(err, plugin, ctx, phase) => void` - called on plugin errors |
 
 **Returns:** `{ start, stop, use, remove, plugins }`
 
@@ -78,6 +80,35 @@ delegator.plugins();           // List active plugins
 delegator.start();             // Attach listener
 delegator.stop();              // Detach listener
 ```
+
+### Debugging / Analytics
+
+Use `onHandle` to track which plugins handle events:
+
+```js
+const delegator = createDelegator({
+  onHandle: (plugin, ctx, el) => {
+    console.log(`[${plugin.name}] handled`, el);
+    // Or send to analytics
+    analytics.track('interaction', { plugin: plugin.name, target: el.id });
+  },
+});
+```
+
+### Error Handling
+
+Use `onError` to capture plugin errors for reporting:
+
+```js
+const delegator = createDelegator({
+  onError: (err, plugin, ctx, phase) => {
+    // phase is "match", "handle", or "onHandle"
+    errorReporting.send(err, { plugin: plugin.name, phase });
+  },
+});
+```
+
+Without `onError`, errors are logged to `console.error`.
 
 ## Plugins
 
@@ -108,8 +139,6 @@ const myPlugin = {
   event,              // Original DOM event
   target,             // event.target as Element (or null)
   rootEl,             // Root element from options
-  feedbackSuccess,    // (el, opts?) => void
-  feedbackError,      // (el, opts?) => void
 }
 ```
 
@@ -143,7 +172,7 @@ delegator.use(createHandlerPlugin({
 
 ## Built-in: Copy Plugins
 
-Copy text or links to clipboard with visual feedback.
+Copy text or links to clipboard.
 
 ```js
 import { copyTextPlugin, copyLinkPlugin } from '@stockwellb/delegator.js/src/plugins/copy.js';
@@ -166,28 +195,6 @@ delegator.use(copyLinkPlugin({
 <button data-copy-link="#section-1">Copy Link</button>
 <button data-copy-link="https://example.com">Copy URL</button>
 ```
-
-### Visual Feedback
-
-Declarative feedback via data attributes:
-
-```html
-<button
-  data-copy-text="npm install delegator.js"
-  data-feedback="icon"
-  data-feedback-target="i"
-  data-feedback-swap="fa-copy:fa-check"
-  data-feedback-ms="1500">
-  <i class="fa-copy"></i> Copy
-</button>
-```
-
-| Attribute | Description |
-|-----------|-------------|
-| `data-feedback` | Mode (`icon` supported) |
-| `data-feedback-target` | Selector for icon element (default `i`) |
-| `data-feedback-swap` | Class swap `from:to` |
-| `data-feedback-ms` | Revert delay in ms (default `1500`) |
 
 ## Using with HTMX
 

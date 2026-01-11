@@ -9,7 +9,6 @@
 // - use event delegation via closest()
 // - preventDefault + stopPropagation by default (configurable)
 // - optionally stopImmediatePropagation (configurable)
-// - call ctx.feedbackSuccess / ctx.feedbackError (declarative feedback via data-feedback-*)
 // - allow injection of writeText() for testing (jsdom) or custom clipboard handling
 // - support ignore zones (selector string or predicate)
 
@@ -18,7 +17,6 @@ import { normalizeIgnore } from "../delegator.js";
 /**
  * @typedef {import("../delegator.js").DelegatorPlugin} DelegatorPlugin
  * @typedef {import("../delegator.js").DelegatorContext} DelegatorContext
- * @typedef {import("../delegator.js").FeedbackOptions} FeedbackOptions
  * @typedef {import("../delegator.js").IgnorePredicate} IgnorePredicate
  */
 
@@ -30,8 +28,6 @@ import { normalizeIgnore } from "../delegator.js";
  * @property {boolean=} stopPropagation - call stopPropagation (default true)
  * @property {boolean=} stopImmediate - call stopImmediatePropagation (default false)
  * @property {string|IgnorePredicate|null=} ignore - ignore zones (selector or predicate)
- * @property {FeedbackOptions=} feedbackSuccess - override feedback on success
- * @property {FeedbackOptions=} feedbackError - override feedback on error
  */
 
 /**
@@ -117,8 +113,6 @@ export function copyLinkPlugin(opts = {}) {
  * @param {boolean=} config.stopPropagation
  * @param {boolean=} config.stopImmediate
  * @param {string|IgnorePredicate|null=} config.ignore
- * @param {FeedbackOptions=} config.feedbackSuccess
- * @param {FeedbackOptions=} config.feedbackError
  * @returns {DelegatorPlugin}
  */
 function createCopyPlugin(config) {
@@ -134,8 +128,6 @@ function createCopyPlugin(config) {
 		stopPropagation = true,
 		stopImmediate = false,
 		ignore = null,
-		feedbackSuccess,
-		feedbackError,
 	} = config;
 
 	const ignorePredicate = normalizeIgnore(ignore);
@@ -160,13 +152,10 @@ function createCopyPlugin(config) {
 			try {
 				await (writeText || defaultWriteText)(value, ctx, el);
 
-				ctx.feedbackSuccess(el, feedbackSuccess);
-
 				if (typeof onSuccess === "function") {
 					onSuccess(ctx, el, value);
 				}
 			} catch (err) {
-				ctx.feedbackError(el, feedbackError);
 				if (typeof onError === "function") {
 					onError(ctx, el, err);
 				} else {

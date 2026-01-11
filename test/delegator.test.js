@@ -7,8 +7,6 @@ import {
 	createDelegator,
 	createHandlerPlugin,
 	normalizeIgnore,
-	readFeedback,
-	applyFeedback,
 } from "../src/delegator.js";
 
 // ---------------------------
@@ -333,7 +331,7 @@ describe("createDelegator", () => {
 		assert.ok(errors[0][0].includes("bad-handle"));
 	});
 
-	test("context contains event, target, rootEl, feedback functions", () => {
+	test("context contains event, target, rootEl", () => {
 		let capturedCtx = null;
 		const plugin = {
 			name: "capture",
@@ -349,8 +347,6 @@ describe("createDelegator", () => {
 		assert.ok(capturedCtx.event instanceof globalThis.window.Event);
 		assert.ok(capturedCtx.target instanceof Element);
 		assert.equal(capturedCtx.rootEl, document.documentElement);
-		assert.equal(typeof capturedCtx.feedbackSuccess, "function");
-		assert.equal(typeof capturedCtx.feedbackError, "function");
 	});
 
 	test("custom eventType option", () => {
@@ -377,6 +373,244 @@ describe("createDelegator", () => {
 		const event = new globalThis.window.MouseEvent("mousedown", { bubbles: true });
 		btn.dispatchEvent(event);
 		assert.equal(calls.length, 1);
+	});
+
+	test("onHandle callback is called when plugin handles", () => {
+		const handleCalls = [];
+		const plugin = {
+			name: "test-plugin",
+			match: (ctx) => ctx.target?.closest("button"),
+			handle: () => true,
+		};
+
+		const delegator = createDelegator({
+			root: document,
+			plugins: [plugin],
+			onHandle: (p, ctx, el) => handleCalls.push({ plugin: p.name, el: el.id }),
+		});
+		delegator.start();
+
+		click(document.getElementById("btn1"));
+
+		assert.equal(handleCalls.length, 1);
+		assert.equal(handleCalls[0].plugin, "test-plugin");
+		assert.equal(handleCalls[0].el, "btn1");
+	});
+
+	test("onHandle receives correct arguments", () => {
+		let captured = null;
+		const plugin = {
+			name: "capture-plugin",
+			match: (ctx) => ctx.target?.closest("button"),
+			handle: () => true,
+		};
+
+		const delegator = createDelegator({
+			root: document,
+			plugins: [plugin],
+			onHandle: (p, ctx, el) => { captured = { p, ctx, el }; },
+		});
+		delegator.start();
+
+		const btn = document.getElementById("btn1");
+		click(btn);
+
+		assert.equal(captured.p, plugin);
+		assert.equal(captured.el, btn);
+		assert.ok(captured.ctx.event instanceof globalThis.window.Event);
+		assert.equal(captured.ctx.target, btn);
+	});
+
+	test("onHandle is not called when plugin returns false", () => {
+		const handleCalls = [];
+		const plugin = {
+			name: "decline-plugin",
+			match: (ctx) => ctx.target?.closest("button"),
+			handle: () => false, // Declines to handle
+		};
+
+		const delegator = createDelegator({
+			root: document,
+			plugins: [plugin],
+			onHandle: (p) => handleCalls.push(p.name),
+		});
+		delegator.start();
+
+		click(document.getElementById("btn1"));
+
+		assert.equal(handleCalls.length, 0);
+	});
+
+	test("onHandle error is caught and logged", () => {
+		const errors = [];
+		const originalError = console.error;
+		console.error = (...args) => errors.push(args);
+
+		const plugin = {
+			name: "test",
+			match: (ctx) => ctx.target?.closest("button"),
+			handle: () => true,
+		};
+
+		const delegator = createDelegator({
+			root: document,
+			plugins: [plugin],
+			onHandle: () => { throw new Error("onHandle boom"); },
+		});
+		delegator.start();
+
+		click(document.getElementById("btn1"));
+
+		console.error = originalError;
+		assert.equal(errors.length, 1);
+		assert.ok(errors[0][0].includes("onHandle callback error"));
+	});
+
+	test("onHandle is called for each handling plugin when stopOnHandle=false", () => {
+		const handleCalls = [];
+		const plugin1 = {
+			name: "p1",
+			match: (ctx) => ctx.target?.closest("button"),
+			handle: () => true,
+		};
+		const plugin2 = {
+			name: "p2",
+			match: (ctx) => ctx.target?.closest("button"),
+			handle: () => true,
+		};
+
+		const delegator = createDelegator({
+			root: document,
+			plugins: [plugin1, plugin2],
+			stopOnHandle: false,
+			onHandle: (p) => handleCalls.push(p.name),
+		});
+		delegator.start();
+
+		click(document.getElementById("btn1"));
+
+		assert.deepEqual(handleCalls, ["p1", "p2"]);
+	});
+
+	test("onError is called when match throws", () => {
+		const errors = [];
+		const plugin = {
+			name: "bad-match",
+			match: () => { throw new Error("match boom"); },
+			handle: () => true,
+		};
+
+		const delegator = createDelegator({
+			root: document,
+			plugins: [plugin],
+			onError: (err, p, ctx, phase) => errors.push({ err, plugin: p.name, phase }),
+		});
+		delegator.start();
+
+		click(document.getElementById("btn1"));
+
+		assert.equal(errors.length, 1);
+		assert.equal(errors[0].plugin, "bad-match");
+		assert.equal(errors[0].phase, "match");
+		assert.ok(errors[0].err.message.includes("match boom"));
+	});
+
+	test("onError is called when handle throws", () => {
+		const errors = [];
+		const plugin = {
+			name: "bad-handle",
+			match: (ctx) => ctx.target?.closest("button"),
+			handle: () => { throw new Error("handle boom"); },
+		};
+
+		const delegator = createDelegator({
+			root: document,
+			plugins: [plugin],
+			onError: (err, p, ctx, phase) => errors.push({ err, plugin: p.name, phase }),
+		});
+		delegator.start();
+
+		click(document.getElementById("btn1"));
+
+		assert.equal(errors.length, 1);
+		assert.equal(errors[0].plugin, "bad-handle");
+		assert.equal(errors[0].phase, "handle");
+		assert.ok(errors[0].err.message.includes("handle boom"));
+	});
+
+	test("onError is called when onHandle throws", () => {
+		const errors = [];
+		const plugin = {
+			name: "good-plugin",
+			match: (ctx) => ctx.target?.closest("button"),
+			handle: () => true,
+		};
+
+		const delegator = createDelegator({
+			root: document,
+			plugins: [plugin],
+			onHandle: () => { throw new Error("onHandle boom"); },
+			onError: (err, p, ctx, phase) => errors.push({ err, plugin: p.name, phase }),
+		});
+		delegator.start();
+
+		click(document.getElementById("btn1"));
+
+		assert.equal(errors.length, 1);
+		assert.equal(errors[0].plugin, "good-plugin");
+		assert.equal(errors[0].phase, "onHandle");
+		assert.ok(errors[0].err.message.includes("onHandle boom"));
+	});
+
+	test("onError receives correct arguments", () => {
+		let captured = null;
+		const plugin = {
+			name: "error-plugin",
+			match: (ctx) => ctx.target?.closest("button"),
+			handle: () => { throw new Error("test error"); },
+		};
+
+		const delegator = createDelegator({
+			root: document,
+			plugins: [plugin],
+			onError: (err, p, ctx, phase) => { captured = { err, p, ctx, phase }; },
+		});
+		delegator.start();
+
+		const btn = document.getElementById("btn1");
+		click(btn);
+
+		assert.ok(captured.err instanceof Error);
+		assert.equal(captured.err.message, "test error");
+		assert.equal(captured.p, plugin);
+		assert.ok(captured.ctx.event instanceof globalThis.window.Event);
+		assert.equal(captured.ctx.target, btn);
+		assert.equal(captured.phase, "handle");
+	});
+
+	test("console.error is used when onError is not provided", () => {
+		const errors = [];
+		const originalError = console.error;
+		console.error = (...args) => errors.push(args);
+
+		const plugin = {
+			name: "bad-plugin",
+			match: (ctx) => ctx.target?.closest("button"),
+			handle: () => { throw new Error("no callback"); },
+		};
+
+		const delegator = createDelegator({
+			root: document,
+			plugins: [plugin],
+			// No onError provided
+		});
+		delegator.start();
+
+		click(document.getElementById("btn1"));
+
+		console.error = originalError;
+		assert.equal(errors.length, 1);
+		assert.ok(errors[0][0].includes("bad-plugin"));
 	});
 });
 
@@ -599,139 +833,5 @@ describe("normalizeIgnore", () => {
 			() => normalizeIgnore(123),
 			/must be a selector string/
 		);
-	});
-});
-
-// ---------------------------
-// Feedback system tests
-// ---------------------------
-
-describe("readFeedback", () => {
-	let dom;
-
-	beforeEach(() => {
-		dom = setupDOM(`
-			<button id="btn"
-				data-feedback="icon"
-				data-feedback-target=".icon"
-				data-feedback-swap="fa-copy:fa-check"
-				data-feedback-ms="2000">
-				<i class="icon fa-copy"></i>
-			</button>
-		`);
-	});
-
-	afterEach(() => {
-		dom.window.close();
-	});
-
-	test("reads all feedback attributes", () => {
-		const btn = document.getElementById("btn");
-		const opts = readFeedback(btn);
-
-		assert.equal(opts.mode, "icon");
-		assert.equal(opts.targetSelector, ".icon");
-		assert.equal(opts.swap, "fa-copy:fa-check");
-		assert.equal(opts.ms, 2000);
-	});
-
-	test("returns undefined for missing attributes", () => {
-		dom = setupDOM(`<button id="empty"></button>`);
-		const btn = document.getElementById("empty");
-		const opts = readFeedback(btn);
-
-		assert.equal(opts.mode, undefined);
-		assert.equal(opts.targetSelector, undefined);
-		assert.equal(opts.swap, undefined);
-		assert.equal(opts.ms, undefined);
-	});
-});
-
-describe("applyFeedback", () => {
-	let dom;
-
-	beforeEach(() => {
-		dom = setupDOM(`
-			<button id="btn">
-				<i class="icon fa-copy"></i>
-			</button>
-		`);
-	});
-
-	afterEach(() => {
-		dom.window.close();
-	});
-
-	test("swaps icon class and reverts after ms", async () => {
-		const btn = document.getElementById("btn");
-		const icon = btn.querySelector("i");
-
-		applyFeedback(btn, {
-			mode: "icon",
-			targetSelector: "i",
-			swap: "fa-copy:fa-check",
-			ms: 50,
-		});
-
-		assert.ok(icon.classList.contains("fa-check"));
-		assert.ok(!icon.classList.contains("fa-copy"));
-
-		await new Promise((r) => setTimeout(r, 100));
-
-		assert.ok(icon.classList.contains("fa-copy"));
-		assert.ok(!icon.classList.contains("fa-check"));
-	});
-
-	test("defaults to 'i' selector and 1500ms", async () => {
-		const btn = document.getElementById("btn");
-		const icon = btn.querySelector("i");
-
-		applyFeedback(btn, { swap: "fa-copy:fa-check", ms: 30 });
-
-		assert.ok(icon.classList.contains("fa-check"));
-	});
-
-	test("warns on invalid swap format", () => {
-		const warnings = [];
-		const originalWarn = console.warn;
-		console.warn = (...args) => warnings.push(args);
-
-		const btn = document.getElementById("btn");
-		applyFeedback(btn, { swap: "invalid-no-colon" });
-
-		console.warn = originalWarn;
-		assert.equal(warnings.length, 1);
-		assert.ok(warnings[0][0].includes("Invalid swap format"));
-	});
-
-	test("does nothing if mode is not 'icon'", () => {
-		const btn = document.getElementById("btn");
-		const icon = btn.querySelector("i");
-		const originalClass = icon.className;
-
-		applyFeedback(btn, { mode: "tooltip", swap: "fa-copy:fa-check" });
-
-		assert.equal(icon.className, originalClass);
-	});
-
-	test("does nothing if swap is missing", () => {
-		const btn = document.getElementById("btn");
-		const icon = btn.querySelector("i");
-		const originalClass = icon.className;
-
-		applyFeedback(btn, { mode: "icon" });
-
-		assert.equal(icon.className, originalClass);
-	});
-
-	test("does nothing if target not found", () => {
-		const btn = document.getElementById("btn");
-
-		// Should not throw
-		applyFeedback(btn, {
-			mode: "icon",
-			targetSelector: ".nonexistent",
-			swap: "fa-copy:fa-check",
-		});
 	});
 });

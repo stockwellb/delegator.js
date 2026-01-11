@@ -6,7 +6,6 @@
 // - Plugin pipeline: first plugin that matches handles the event
 // - Fallback plugin for [data-handler] registry dispatch (safe; no eval)
 // - "Zones": opt-out mechanism via ignore selector OR ignore predicate (app/library decides naming)
-// - Small declarative feedback helper used by plugins
 //
 // Philosophy:
 // - Data attributes are the API
@@ -34,23 +33,29 @@
  * @property {Event} event
  * @property {Element|null} target
  * @property {Element} rootEl
- * @property {(el: Element, opts?: FeedbackOptions) => void} feedbackSuccess
- * @property {(el: Element, opts?: FeedbackOptions) => void} feedbackError
- */
-
-/**
- * @typedef {Object} FeedbackOptions
- * @property {string=} mode            // currently supports: "icon"
- * @property {string=} targetSelector  // e.g. "i", ".icon"
- * @property {string=} swap            // e.g. "fa-copy:fa-check"
- * @property {number=} ms              // duration to revert
- * @property {string=} text            // reserved for future
  */
 
 /**
  * @callback IgnorePredicate
  * @param {DelegatorContext} ctx
  * @returns {boolean} - true means "ignore (do not intercept)"
+ */
+
+/**
+ * @callback OnHandleCallback
+ * @param {DelegatorPlugin} plugin - the plugin that handled the event
+ * @param {DelegatorContext} ctx - the delegator context
+ * @param {Element} el - the matched element
+ * @returns {void}
+ */
+
+/**
+ * @callback OnErrorCallback
+ * @param {Error} err - the error that was thrown
+ * @param {DelegatorPlugin} plugin - the plugin that threw the error
+ * @param {DelegatorContext} ctx - the delegator context
+ * @param {"match"|"handle"|"onHandle"} phase - which phase the error occurred in
+ * @returns {void}
  */
 
 /**
@@ -67,6 +72,8 @@
  *        - predicate(ctx): ignore if it returns true
  * @param {DelegatorPlugin[]=} options.plugins - initial plugin list (order matters)
  * @param {boolean=} options.stopOnHandle - stop after first plugin handles (default true)
+ * @param {OnHandleCallback=} options.onHandle - called when a plugin handles an event (useful for debugging/analytics)
+ * @param {OnErrorCallback=} options.onError - called when a plugin throws an error (useful for error reporting)
  * @returns {Delegator}
  */
 export function createDelegator(options = {}) {
@@ -79,6 +86,8 @@ export function createDelegator(options = {}) {
     ignore = null,
     plugins = [],
     stopOnHandle = true,
+    onHandle = null,
+    onError = null,
   } = options;
 
   const listenerOptions = { capture, passive };
@@ -104,10 +113,6 @@ export function createDelegator(options = {}) {
       event,
       target,
       rootEl,
-      feedbackSuccess: (el, opts) =>
-        applyFeedback(el, { ...readFeedback(el), ...(opts || {}), kind: "success" }),
-      feedbackError: (el, opts) =>
-        applyFeedback(el, { ...readFeedback(el), ...(opts || {}), kind: "error" }),
     };
 
     // Zones: if ignored, do nothing and let the event proceed naturally.
@@ -119,7 +124,11 @@ export function createDelegator(options = {}) {
       try {
         el = plugin.match(ctx);
       } catch (err) {
-        console.error(`[delegator] plugin "${plugin.name || "anonymous"}" match error:`, err);
+        if (typeof onError === "function") {
+          onError(err, plugin, ctx, "match");
+        } else {
+          console.error(`[delegator] plugin "${plugin.name || "anonymous"}" match error:`, err);
+        }
         continue;
       }
 
@@ -132,9 +141,26 @@ export function createDelegator(options = {}) {
         // Explicit false means "I matched but chose not to handle"
         const didHandle = handled !== false;
 
-        if (didHandle && stopOnHandle) return;
+        if (didHandle) {
+          if (typeof onHandle === "function") {
+            try {
+              onHandle(plugin, ctx, el);
+            } catch (err) {
+              if (typeof onError === "function") {
+                onError(err, plugin, ctx, "onHandle");
+              } else {
+                console.error(`[delegator] onHandle callback error:`, err);
+              }
+            }
+          }
+          if (stopOnHandle) return;
+        }
       } catch (err) {
-        console.error(`[delegator] plugin "${plugin.name || "anonymous"}" handle error:`, err);
+        if (typeof onError === "function") {
+          onError(err, plugin, ctx, "handle");
+        } else {
+          console.error(`[delegator] plugin "${plugin.name || "anonymous"}" handle error:`, err);
+        }
         // If a plugin claimed the event and errored, we generally stop to avoid cascading.
         if (stopOnHandle) return;
       }
@@ -275,70 +301,5 @@ export function createHandlerPlugin(opts) {
 function resolveHandler(registry, name) {
   if (!name.includes(".")) return registry[name];
   return name.split(".").reduce((obj, key) => (obj ? obj[key] : undefined), registry);
-}
-
-// -----------------------------------------------------------------------------
-// Feedback helper
-// -----------------------------------------------------------------------------
-
-/**
- * Read declarative feedback settings from data attributes.
- * Exported for plugin authors who want to leverage the feedback system.
- *
- * @param {Element} el
- * @returns {FeedbackOptions & {kind?: "success"|"error"}}
- */
-export function readFeedback(el) {
-  const mode = el.getAttribute("data-feedback") || undefined;
-  const targetSelector = el.getAttribute("data-feedback-target") || undefined;
-  const swap = el.getAttribute("data-feedback-swap") || undefined;
-
-  const msRaw = el.getAttribute("data-feedback-ms");
-  const ms = msRaw ? Number(msRaw) : undefined;
-
-  return { mode, targetSelector, swap, ms };
-}
-
-/**
- * Apply feedback based on options.
- * Exported for plugin authors who want to leverage the feedback system.
- *
- * Currently supports:
- * - mode="icon": swap CSS classes on a target element
- *
- * @param {Element} el
- * @param {FeedbackOptions & {kind?: "success"|"error"}} opts
- */
-export function applyFeedback(el, opts) {
-  const mode = opts.mode || "icon";
-  if (mode !== "icon") return;
-
-  const targetSelector = opts.targetSelector || "i";
-  const swap = opts.swap;
-  if (!swap) return;
-
-  const [fromClass, toClass] = swap.split(":").map((s) => s.trim());
-  if (!fromClass || !toClass) {
-    console.warn(`[delegator] Invalid swap format "${swap}". Expected "fromClass:toClass".`);
-    return;
-  }
-
-  const ms = Number.isFinite(opts.ms) ? /** @type {number} */ (opts.ms) : 1500;
-
-  const target = el.querySelector(targetSelector);
-  if (!target) return;
-
-  // Save original class name to revert reliably.
-  const original = target.className;
-
-  // Swap token if present, else just add "to".
-  if (target.classList.contains(fromClass)) {
-    target.classList.remove(fromClass);
-  }
-  target.classList.add(toClass);
-
-  window.setTimeout(() => {
-    target.className = original;
-  }, ms);
 }
 

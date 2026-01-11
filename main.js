@@ -4,6 +4,46 @@ import { createDelegator, createHandlerPlugin } from './src/delegator.js';
 import { copyTextPlugin, copyLinkPlugin } from './src/plugins/copy.js';
 
 // ---------------------------
+// Feedback helper (replaces removed library feature)
+// ---------------------------
+
+/**
+ * Apply icon swap feedback on an element.
+ * Reads data-feedback-* attributes or uses provided options.
+ *
+ * @param {Element} el - The button/element that was clicked
+ * @param {Object} opts - Optional overrides
+ * @param {string} opts.targetSelector - Selector for icon element (default 'i')
+ * @param {string} opts.swap - Class swap in "from:to" format
+ * @param {number} opts.ms - Duration before reverting (default 1500)
+ */
+function applyFeedback(el, opts = {}) {
+	const targetSelector = opts.targetSelector || el.getAttribute('data-feedback-target') || 'i';
+	const swap = opts.swap || el.getAttribute('data-feedback-swap');
+	const ms = opts.ms || Number(el.getAttribute('data-feedback-ms')) || 1500;
+
+	if (!swap) return;
+
+	const [fromClass, toClass] = swap.split(':').map(s => s.trim());
+	if (!fromClass || !toClass) return;
+
+	const target = el.querySelector(targetSelector);
+	if (!target) return;
+
+	// Save original classes to restore later
+	const original = target.className;
+
+	// Swap the classes
+	target.classList.remove(fromClass);
+	target.classList.add(toClass);
+
+	// Revert after delay
+	setTimeout(() => {
+		target.className = original;
+	}, ms);
+}
+
+// ---------------------------
 // Logging utility
 // ---------------------------
 
@@ -106,6 +146,13 @@ const handlers = {
 			log('Log cleared', 'info');
 		},
 	},
+
+	// Error demo
+	Error: {
+		triggerError: (_e, _el) => {
+			throw new Error('Intentional error for demo');
+		},
+	},
 };
 
 // ---------------------------
@@ -145,6 +192,9 @@ const delegator = createDelegator({
 	eventType: 'click',
 	ignore: '[data-ignore]', // Ignore zone selector
 	stopOnHandle: true,
+	onError: (err, plugin, _ctx, phase) => {
+		log(`Error in ${plugin.name} (${phase}): ${err.message}`, 'error');
+	},
 });
 
 // ---------------------------
@@ -159,9 +209,10 @@ delegator.use(createHandlerPlugin({
 	},
 }));
 
-// 2. Copy text plugin with feedback
+// 2. Copy text plugin
 copyPluginInstance = copyTextPlugin({
-	onSuccess: (_ctx, _el, text) => {
+	onSuccess: (_ctx, el, text) => {
+		applyFeedback(el);
 		log(`Copied text: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`, 'success');
 	},
 	onError: (_ctx, _el, err) => {
@@ -170,9 +221,10 @@ copyPluginInstance = copyTextPlugin({
 });
 delegator.use(copyPluginInstance);
 
-// 3. Copy link plugin with feedback
+// 3. Copy link plugin
 copyLinkPluginInstance = copyLinkPlugin({
-	onSuccess: (_ctx, _el, url) => {
+	onSuccess: (_ctx, el, url) => {
+		applyFeedback(el);
 		log(`Copied link: "${url.substring(0, 40)}${url.length > 40 ? '...' : ''}"`, 'success');
 	},
 	onError: (_ctx, _el, err) => {

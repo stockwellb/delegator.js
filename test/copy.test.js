@@ -255,24 +255,6 @@ describe("copyTextPlugin", () => {
 		assert.equal(writeText.calls[0].text, "");
 	});
 
-	test("feedbackSuccess is called on success", async () => {
-		const writeText = createMockWriteText();
-		let feedbackCalled = false;
-
-		const plugin = copyTextPlugin({ writeText });
-		const delegator = createDelegator({ root: document, plugins: [plugin] });
-		delegator.start();
-
-		// Patch the context feedbackSuccess
-		const origListener = document.addEventListener.bind(document);
-		// We can't easily intercept ctx.feedbackSuccess, but we can verify the flow works
-		// by checking writeText was called (success path)
-
-		click(document.getElementById("copy-hello"));
-
-		await new Promise((r) => setTimeout(r, 10));
-		assert.equal(writeText.calls.length, 1);
-	});
 });
 
 // ---------------------------
@@ -511,47 +493,8 @@ describe("defaultBuildURL", () => {
 describe("copy plugins integration", () => {
 	let dom;
 
-	beforeEach(() => {
-		dom = setupDOM(`
-			<div id="root">
-				<button id="copy-text"
-					data-copy-text="Hello"
-					data-feedback="icon"
-					data-feedback-target="i"
-					data-feedback-swap="fa-copy:fa-check"
-					data-feedback-ms="50">
-					<i class="fa-copy"></i>
-				</button>
-			</div>
-		`);
-	});
-
 	afterEach(() => {
 		dom.window.close();
-	});
-
-	test("feedback system integrates with copy plugin", async () => {
-		const writeText = createMockWriteText();
-		const plugin = copyTextPlugin({ writeText });
-		const delegator = createDelegator({ root: document, plugins: [plugin] });
-		delegator.start();
-
-		const btn = document.getElementById("copy-text");
-		const icon = btn.querySelector("i");
-
-		click(btn);
-
-		await new Promise((r) => setTimeout(r, 10));
-
-		// Icon should have swapped
-		assert.ok(icon.classList.contains("fa-check"));
-		assert.ok(!icon.classList.contains("fa-copy"));
-
-		// Wait for revert
-		await new Promise((r) => setTimeout(r, 100));
-
-		assert.ok(icon.classList.contains("fa-copy"));
-		assert.ok(!icon.classList.contains("fa-check"));
 	});
 
 	test("multiple copy plugins can coexist", async () => {
