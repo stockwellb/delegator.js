@@ -5,9 +5,9 @@ import { JSDOM } from "jsdom";
 
 import {
 	createDelegator,
-	createHandlerPlugin,
 	normalizeIgnore,
 } from "../src/delegator.js";
+import { createHandlerPlugin } from "../src/plugins/handler.js";
 
 // ---------------------------
 // Test helpers

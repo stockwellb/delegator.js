@@ -1,6 +1,7 @@
 // main.js - Demo of delegator.js capabilities
 
-import { createDelegator, createHandlerPlugin } from './src/delegator.js';
+import { createDelegator } from './src/delegator.js';
+import { createHandlerPlugin } from './src/plugins/handler.js';
 import { copyTextPlugin, copyLinkPlugin } from './src/plugins/copy.js';
 import { toggleClassPlugin, dismissPlugin, scrollToPlugin, disablePlugin, focusPlugin, confirmPlugin } from './src/plugins/ui.js';
 
